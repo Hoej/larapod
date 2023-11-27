@@ -1,0 +1,181 @@
+#!/usr/bin/env bash
+
+VERSION="0.0.1"
+
+# Define container names
+CONTAINER_APP="app"
+CONTAINER_NODE="node"
+
+# Define commands
+COMPOSE=(docker-compose)
+SRC="vendor/hoej/larapod/src/docker-compose.yml"
+
+# Define colors
+ESC_SEQ="\x1b["
+COL_RESET=${ESC_SEQ}"39;49;00m"
+COL_YELLOW=${ESC_SEQ}"33;01m"
+COL_GREEN=${ESC_SEQ}"32;01m"
+
+showVersion() {
+    printf "v%s\n" "$VERSION"
+}
+
+showHelp() {
+    usage="${COL_YELLOW}Usage:\n${COL_RESET}"
+    usage="$usage  ./pod <cmd> <options>"
+
+    commands="${COL_YELLOW}Commands:\n${COL_RESET}"
+    commands="$commands  start                       Starts all containers\n"
+    commands="$commands  stop                        Stops all containers\n"
+    commands="$commands  art | artisan <cmd>         Run php artisan commands in the ${COL_GREEN}${CONTAINER_APP}${COL_RESET} container\n"
+    commands="$commands  composer <cmd>              Run composer commands in the ${COL_GREEN}${CONTAINER_APP}${COL_RESET} container\n"
+    commands="$commands  npm <cmd>                   Execute npm commands in the ${COL_GREEN}${CONTAINER_NODE}${COL_RESET} container\n"
+    commands="$commands  php <cmd>                   Run PHP commands in the ${COL_GREEN}${CONTAINER_APP}${COL_RESET} container\n"
+    commands="$commands  pint <cmd>                  Run laravel pint commands in the ${COL_GREEN}${CONTAINER_APP}${COL_RESET} container\n"
+    commands="$commands  phpstan <cmd>               Run phpstan commands in the ${COL_GREEN}${CONTAINER_APP}${COL_RESET} container\n"
+    commands="$commands  test [params]               Runs PHPUnit using supplied options in ${COL_GREEN}${CONTAINER_APP}${COL_RESET} container\n"
+    commands="$commands  tinker                      Runs Tinker in ${COL_GREEN}${CONTAINER_APP}${COL_RESET} container\n"
+
+    options="${COL_YELLOW}Options:\n${COL_RESET}"
+    options="$options --help, -h                   Shows Help (this screen)\n"
+    options="$options --version, -v                Show Version\n"
+
+    examples="${COL_YELLOW}Examples:\n${COL_RESET}"
+    examples="$examples  ${COL_GREEN}$ ./pod start${COL_RESET}\n"
+    examples="$examples  ${COL_GREEN}$ ./pod stop${COL_RESET}\n"
+    examples="$examples  ${COL_GREEN}$ ./pod composer install${COL_RESET}\n"
+    examples="$examples  ${COL_GREEN}$ ./pod art migrate --seed${COL_RESET}\n"
+    examples="$examples  ${COL_GREEN}$ ./pod test --filter=MyFilter${COL_RESET}\n"
+    examples="$examples  ${COL_GREEN}$ ./pod npm run dev${COL_RESET}\n"
+
+    printf "\n"
+    printf "%s $usage\n\n"
+    printf "%s $commands\n"
+    printf "%s $options\n"
+    printf "%s $examples\n"
+}
+
+# Will retrieve the base image from the dockerfile
+baseImage() {
+    grep '^FROM ' "docker/Dockerfile" | awk '{print $2}'
+}
+
+# Source the ".env" file
+source ./.env;
+source ./.env.pod;
+
+# Define .env variables
+export APP_NAME=${APP_NAME:-'APP'}
+export DB_PASSWORD=${DB_PASSWORD:-'root'}
+export WEBSERVER_PORT=${WEBSERVER_PORT:-80}
+export NODE_PORT=${NODE_PORT:-5173}
+export DB_PORT=${DB_PORT:-3306}
+export REDIS_PORT=${REDIS_PORT:-6379}
+export MINIO_CONSOLE_PORT=${MINIO_CONSOLE_PORT:-9001}
+export MINIO_API_PORT=${MINIO_API_PORT:-9000}
+
+# If arguments are passed
+if [ $# -gt 0 ]; then
+
+    if [ "$1" = "--version" ] || [ "$1" == "-v" ]; then
+        showVersion
+        exit 1
+    fi
+
+    if [ "$1" == "--help" ] || [ "$1" == "-H" ] || [ "$1" == "help" ]; then
+        showHelp
+        exit 1
+    fi
+
+    # Start up containers
+    if [ "$1" = "start" ]; then
+        baseImage=$(baseImage)
+        baseImageTag=$(echo "$baseImage" | cut -d':' -f2)
+
+        # check if the base image exist in the Docker registry
+        # if it does not exist it means we are looking for a local image
+        if ! docker manifest inspect "$baseImage" > /dev/null 2>&1; then
+            if [[ "$(docker images -q "$baseImage" 2> /dev/null)" == "" ]]; then
+                echo "Base image not found!"
+                echo "Building base image..."
+                export DOCKER_DEFAULT_PLATFORM=linux/amd64 && \
+                docker build -f vendor/hoej/larapod/src/runtimes/"$baseImageTag"/Dockerfile -t "$baseImage" vendor/hoej/larapod/src/runtimes/"$baseImageTag"/
+            fi
+        fi
+
+        shift 1
+        $COMPOSE up -d "$@"
+
+    # Stop the containers
+    elif [ "$1" = "stop" ]; then
+        shift 1
+        $COMPOSE down "$@"
+
+    # Pass "php" commands through to the APP CONTAINER
+    elif [ "$1" = "php" ]; then
+        shift 1
+        $COMPOSE exec \
+                $CONTAINER_APP \
+                php "$@"
+
+    # Pass "artisan" commands through to the APP CONTAINER
+    elif [ "$1" = "artisan" ] || [ "$1" == "art" ]; then
+        shift 1
+        $COMPOSE exec \
+                $CONTAINER_APP \
+                php artisan "$@"
+
+    # Pass "tinker" commands through to the APP CONTAINER
+    elif [ "$1" == "tinker" ] ; then
+        shift 1
+        $COMPOSE -f $SRCexec \
+            $CONTAINER_APP \
+            php artisan tinker
+
+    # Pass "composer" commands through to the APP CONTAINER
+    elif [ "$1" = "composer" ] || [ "$1" == "comp" ]; then
+        shift 1
+        $COMPOSE exec \
+                $CONTAINER_APP \
+                composer "$@"
+
+    # Pass "phpunit" commands through to the APP CONTAINER
+    elif [ "$1" = "test" ]; then
+        shift 1
+        $COMPOSE exec \
+                $CONTAINER_APP \
+                ./vendor/bin/phpunit "$@"
+
+    # Run "node" commands in the NODE CONTAINER
+    elif [ "$1" = "node" ]; then
+        shift 1
+        $COMPOSE exec --rm \
+            $CONTAINER_NODE \
+            node "$@"
+
+    # Run "npm" commands in the NODE CONTAINER
+    elif [ "$1" = "npm" ]; then
+        shift 1
+
+        $COMPOSE exec "${args[@]}" \
+            $CONTAINER_NODE \
+            npm "$@"
+
+    # Pass laravel "pint" commands through to the APP CONTAINER
+    elif [ "$1" = "pint" ]; then
+        shift 1
+        $COMPOSE exec \
+            $CONTAINER_APP \
+            ./vendor/bin/pint "$@"
+
+    # Pass "phpstan" commands through to the APP CONTAINER
+    elif [ "$1" = "phpstan" ]; then
+        shift 1
+        $COMPOSE exec \
+            $CONTAINER_APP \
+            ./vendor/bin/phpstan "$@"
+    fi
+else
+    # Show running containers
+    $COMPOSE ps
+fi

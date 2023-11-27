@@ -31,6 +31,9 @@
             "Hoej\\Larapod\\Tests\\": "tests"
         }
     },
+    "bin": [
+        "src/bin/pod"
+    ],
     "scripts": {
         "test": "vendor/bin/phpunit",
         "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
