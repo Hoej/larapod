@@ -98,14 +98,22 @@ if [ $# -gt 0 ]; then
             baseImage=$(baseImage)
             baseImageTag=$(echo "$baseImage" | cut -d':' -f2)
 
+            # Capture if --build is passed
+            build_flag=false
+            for arg in "$@"; do
+                if [ "$arg" = "--build" ]; then
+                    build_flag=true
+                    break
+                fi
+            done
+
             # check if the base image exist in the Docker registry
             # if it does not exist it means we are looking for a local image
             if ! docker manifest inspect "$baseImage" > /dev/null 2>&1; then
-                if [[ "$(docker images -q "$baseImage" 2> /dev/null)" == "" ]]; then
-                    echo "Base image not found!"
-                    echo "Building base image..."
+                if $build_flag || [[ "$(docker images -q "$baseImage" 2> /dev/null)" == "" ]]; then
                     export DOCKER_DEFAULT_PLATFORM=linux/amd64 && \
                     docker build -f vendor/hoej/larapod/src/runtimes/"$baseImageTag"/Dockerfile -t "$baseImage" vendor/hoej/larapod/src/runtimes/"$baseImageTag"/
+                    unset DOCKER_DEFAULT_PLATFORM
                 fi
             fi
         fi
