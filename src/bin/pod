@@ -60,6 +60,11 @@ baseImage() {
     grep '^FROM ' "docker/Dockerfile" | awk '{print $2}'
 }
 
+# Checks if the runtime image is extended
+runtimeImageIsExtended() {
+    [ -f "docker/Dockerfile" ]
+}
+
 # Source the ".env" file
 source ./.env;
 source ./.env.pod;
@@ -89,17 +94,19 @@ if [ $# -gt 0 ]; then
 
     # Start up containers
     if [ "$1" = "start" ]; then
-        baseImage=$(baseImage)
-        baseImageTag=$(echo "$baseImage" | cut -d':' -f2)
+        if runtimeImageIsExtended; then
+            baseImage=$(baseImage)
+            baseImageTag=$(echo "$baseImage" | cut -d':' -f2)
 
-        # check if the base image exist in the Docker registry
-        # if it does not exist it means we are looking for a local image
-        if ! docker manifest inspect "$baseImage" > /dev/null 2>&1; then
-            if [[ "$(docker images -q "$baseImage" 2> /dev/null)" == "" ]]; then
-                echo "Base image not found!"
-                echo "Building base image..."
-                export DOCKER_DEFAULT_PLATFORM=linux/amd64 && \
-                docker build -f vendor/hoej/larapod/src/runtimes/"$baseImageTag"/Dockerfile -t "$baseImage" vendor/hoej/larapod/src/runtimes/"$baseImageTag"/
+            # check if the base image exist in the Docker registry
+            # if it does not exist it means we are looking for a local image
+            if ! docker manifest inspect "$baseImage" > /dev/null 2>&1; then
+                if [[ "$(docker images -q "$baseImage" 2> /dev/null)" == "" ]]; then
+                    echo "Base image not found!"
+                    echo "Building base image..."
+                    export DOCKER_DEFAULT_PLATFORM=linux/amd64 && \
+                    docker build -f vendor/hoej/larapod/src/runtimes/"$baseImageTag"/Dockerfile -t "$baseImage" vendor/hoej/larapod/src/runtimes/"$baseImageTag"/
+                fi
             fi
         fi
 
