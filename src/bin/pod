@@ -94,6 +94,17 @@ if [ $# -gt 0 ]; then
 
     # Start up containers
     if [ "$1" = "start" ]; then
+
+        if ! grep -qE "127.0.0.1\s+host.docker.internal" /etc/hosts; then
+          echo "host.docker.internal is not set in your hosts file"
+          echo "writing to /etc/hosts..."
+          echo "" | sudo tee -a /etc/hosts
+          echo "# Added by hoej/larapod" | sudo tee -a /etc/hosts
+          echo "# To allow the same context to work on both the host and the container" | sudo tee -a /etc/hosts
+          echo "127.0.0.1       host.docker.internal" | sudo tee -a /etc/hosts
+          echo ""
+        fi
+
         if runtimeImageIsExtended; then
             baseImage=$(baseImage)
             baseImageTag=$(echo "$baseImage" | cut -d':' -f2)
