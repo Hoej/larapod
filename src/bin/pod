@@ -108,6 +108,16 @@ if [ $# -gt 0 ]; then
         if runtimeImageIsExtended; then
             baseImage=$(baseImage)
             baseImageTag=$(echo "$baseImage" | cut -d':' -f2)
+            baseImageRuntime=$(echo "$baseImageTag" | cut -d'-' -f1)
+            baseImageArch=$(echo "$baseImageTag" | cut -d'-' -f2-)
+
+            # If no dash was found, or the result is empty, set architecture to empty
+            if [[ "$baseImageTag" == "$baseImageArch" ]]; then
+              baseImageArch=""
+            else
+              # convert
+              baseImageArch=$(echo "$baseImageArch" | sed 's/_/\//')
+            fi
 
             # Capture if --build is passed
             build_flag=false
@@ -122,8 +132,11 @@ if [ $# -gt 0 ]; then
             # if it does not exist it means we are looking for a local image
             if ! docker manifest inspect "$baseImage" > /dev/null 2>&1; then
                 if $build_flag || [[ "$(docker images -q "$baseImage" 2> /dev/null)" == "" ]]; then
-                    export DOCKER_DEFAULT_PLATFORM=linux/amd64 && \
-                    docker build -f vendor/hoej/larapod/src/runtimes/"$baseImageTag"/Dockerfile -t "$baseImage" vendor/hoej/larapod/src/runtimes/"$baseImageTag"/
+                    if [[ -n "$baseImageArch" ]]; then
+                      export DOCKER_DEFAULT_PLATFORM=$baseImageArch
+                    fi
+
+                    docker build -f vendor/hoej/larapod/src/runtimes/"$baseImageRuntime"/Dockerfile -t "$baseImage" vendor/hoej/larapod/src/runtimes/"$baseImageRuntime"/
                     unset DOCKER_DEFAULT_PLATFORM
                 fi
             fi
