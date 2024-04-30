@@ -20,7 +20,8 @@ RUN apk add --update --no-cache \
     linux-headers
 
 RUN pecl install redis xdebug excimer
-RUN docker-php-ext-install pdo_mysql opcache pcntl exif
+RUN docker-php-ext-configure gd --with-jpeg
+RUN docker-php-ext-install gd pdo_mysql opcache pcntl exif
 RUN docker-php-ext-enable redis xdebug excimer
 
 # Install composer
