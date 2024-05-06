@@ -17,12 +17,14 @@ RUN apk add --update --no-cache \
     libzip-dev \
     libpng-dev \
     libjpeg-turbo-dev \
-    linux-headers
+    linux-headers \
+    mysql-client \
+    mariadb-connector-c
 
 RUN pecl install redis xdebug excimer
 RUN docker-php-ext-configure gd --with-jpeg
 RUN docker-php-ext-install gd pdo_mysql opcache pcntl exif
-RUN docker-php-ext-enable redis xdebug excimer
+RUN docker-php-ext-enable redis excimer
 
 # Install composer
 ADD scripts/install-composer.sh /var/www/
