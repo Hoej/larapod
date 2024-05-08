@@ -24,7 +24,7 @@ RUN apk add --update --no-cache \
 RUN pecl install redis xdebug excimer
 RUN docker-php-ext-configure gd --with-jpeg
 RUN docker-php-ext-install gd pdo_mysql opcache pcntl exif
-RUN docker-php-ext-enable redis excimer
+RUN docker-php-ext-enable redis xdebug excimer
 
 # Install composer
 ADD scripts/install-composer.sh /var/www/
