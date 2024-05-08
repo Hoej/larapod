@@ -27,4 +27,4 @@ jobs:
         with:
           context: "{{defaultContext}}:src/runtimes/php83"
           push: true
-          tags: hoejdk/larapod:latest
+          tags: hoejdk/larapod:php83
