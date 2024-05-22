@@ -34,6 +34,7 @@ showHelp() {
     commands="$commands  pint <cmd>                  Run laravel pint commands in the ${COL_GREEN}${CONTAINER_APP}${COL_RESET} container\n"
     commands="$commands  phpstan <cmd>               Run phpstan commands in the ${COL_GREEN}${CONTAINER_APP}${COL_RESET} container\n"
     commands="$commands  test [params]               Runs PHPUnit using supplied options in ${COL_GREEN}${CONTAINER_APP}${COL_RESET} container\n"
+    commands="$commands  pest [params]               Runs PEST using supplied options in ${COL_GREEN}${CONTAINER_APP}${COL_RESET} container\n"
     commands="$commands  tinker                      Runs Tinker in ${COL_GREEN}${CONTAINER_APP}${COL_RESET} container\n"
 
     options="${COL_YELLOW}Options:\n${COL_RESET}"
@@ -184,6 +185,13 @@ if [ $# -gt 0 ]; then
         $COMPOSE exec \
                 $CONTAINER_APP \
                 ./vendor/bin/phpunit "$@"
+
+    # Pass "pest" commands through to the APP CONTAINER
+    elif [ "$1" = "pest" ]; then
+        shift 1
+        $COMPOSE exec \
+                $CONTAINER_APP \
+                ./vendor/bin/pest "$@"
 
     # Run "node" commands in the NODE CONTAINER
     elif [ "$1" = "node" ]; then
