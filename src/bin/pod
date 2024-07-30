@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
-VERSION="1.2.0"
+VERSION="1.4.0"
 
 # Define container names
 CONTAINER_APP="app"
 CONTAINER_NODE="node"
 
 # Define commands
-COMPOSE=(docker-compose)
+COMPOSE=(docker compose)
 SRC="vendor/hoej/larapod/src/docker-compose.yml"
 
 # Define colors
@@ -66,9 +66,13 @@ runtimeImageIsExtended() {
     [ -f "docker/Dockerfile" ]
 }
 
-# Source the ".env" file
-source ./.env;
-source ./.env.pod;
+if [ -f ./.env ]; then
+    source ./.env;
+fi
+
+if [ -f ./.env.pod ]; then
+    source ./.env.pod;
+fi
 
 # Define .env variables
 export APP_NAME=${APP_NAME:-'APP'}
