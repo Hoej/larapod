@@ -7,7 +7,7 @@ CONTAINER_APP="app"
 CONTAINER_NODE="node"
 
 # Define commands
-COMPOSE=(docker compose)
+COMPOSE="docker compose"
 SRC="vendor/hoej/larapod/src/docker-compose.yml"
 
 # Define colors
