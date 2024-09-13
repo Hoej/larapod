@@ -14,6 +14,8 @@ RUN apk add --update --no-cache \
     supervisor \
     autoconf \
     build-base \
+    icu-dev \
+    icu-data-full \
     libzip-dev \
     libpng-dev \
     libjpeg-turbo-dev \
@@ -23,7 +25,7 @@ RUN apk add --update --no-cache \
 
 RUN pecl install redis xdebug excimer
 RUN docker-php-ext-configure gd --with-jpeg
-RUN docker-php-ext-install gd pdo_mysql opcache pcntl exif intl
+RUN docker-php-ext-install intl gd pdo_mysql opcache pcntl exif
 RUN docker-php-ext-enable redis xdebug excimer
 
 # Install composer
